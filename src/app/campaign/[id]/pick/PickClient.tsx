@@ -117,10 +117,6 @@ function PickHeader({
         participation === 1 ? "person has" : "people have"
       } made their pick`}
 </p>
-        <p className="mt-4 text-sm font-medium text-neutral-400">
-          {participation.toLocaleString()}{" "}
-{participation === 1 ? "person has" : "people have"} made their pick
-        </p>
       </div>
     </section>
   );
