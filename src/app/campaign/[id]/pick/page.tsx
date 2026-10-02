@@ -79,6 +79,21 @@ export default async function PickPage({ params }: PickPageProps) {
         )
       : undefined;
 
+    // Get the live number of approved submissions for this campaign.
+    const { count: submissionCount, error: submissionCountError } =
+      await supabase
+        .from("submissions")
+        .select("id", { count: "exact", head: true })
+        .eq("campaign_id", data.id)
+        .eq("status", "approved");
+
+    if (submissionCountError) {
+      console.error(
+        "Pick page submission count error:",
+        submissionCountError
+      );
+    }
+
     const campaign: Campaign = {
       id: data.id,
       brand: data.brand_name,
@@ -88,7 +103,7 @@ export default async function PickPage({ params }: PickPageProps) {
       category: data.category || "General",
       status: validStatus,
       prize: `${Number(data.prize_pool).toFixed(2)} SOL`,
-      submissions: 0,
+      submissions: submissionCount ?? 0,
       remaining: getRemainingTime(data.ends_at),
       tone: "from-orange-600/20 to-neutral-900",
       productName: data.product_name || undefined,

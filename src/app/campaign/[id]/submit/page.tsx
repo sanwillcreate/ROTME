@@ -99,29 +99,42 @@ export default async function SubmitPage({ params }: SubmitPageProps) {
         ? "Ending soon"
         : "Active";
 
-  const rules = Array.isArray(data.rules)
-    ? data.rules.filter(
-        (rule): rule is string => typeof rule === "string"
-      )
-    : undefined;
+ const rules = Array.isArray(data.rules)
+  ? data.rules.filter(
+      (rule): rule is string => typeof rule === "string"
+    )
+  : undefined;
 
-  const campaign: Campaign = {
-    id: data.id,
-    brand: data.brand_name,
-    initial: data.brand_name?.charAt(0).toUpperCase() || "?",
-    title: data.title,
-    description: data.description,
-    category: data.category || "General",
-    status: validStatus,
-    prize: `${Number(data.prize_pool).toFixed(2)} SOL`,
-    submissions: 0,
-    remaining: getRemainingTime(data.ends_at),
-    tone: "from-orange-600/20 to-neutral-900",
-    productName: data.product_name || undefined,
-    creatorBrief: data.creator_brief || undefined,
-    rules,
-    dynamic: true,
-  };
+const { count: submissionCount, error: submissionCountError } =
+  await supabase
+    .from("submissions")
+    .select("id", { count: "exact", head: true })
+    .eq("campaign_id", data.id)
+    .eq("status", "approved");
 
+if (submissionCountError) {
+  console.error(
+    "Submit page submission count error:",
+    submissionCountError
+  );
+}
+
+const campaign: Campaign = {
+  id: data.id,
+  brand: data.brand_name,
+  initial: data.brand_name?.charAt(0).toUpperCase() || "?",
+  title: data.title,
+  description: data.description,
+  category: data.category || "General",
+  status: validStatus,
+  prize: `${Number(data.prize_pool).toFixed(2)} SOL`,
+  submissions: submissionCount ?? 0,
+  remaining: getRemainingTime(data.ends_at),
+  tone: "from-orange-600/20 to-neutral-900",
+  productName: data.product_name || undefined,
+  creatorBrief: data.creator_brief || undefined,
+  rules,
+  dynamic: true,
+};
   return <SubmitClient campaign={campaign} />;
 }

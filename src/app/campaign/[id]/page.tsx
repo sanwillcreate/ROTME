@@ -82,6 +82,11 @@ export default async function CampaignPage({
           (rule): rule is string => typeof rule === "string"
         )
       : undefined;
+      const { count: submissionCount } = await supabase
+  .from("submissions")
+  .select("id", { count: "exact", head: true })
+  .eq("campaign_id", data.id)
+  .eq("status", "approved");
 
     const campaign: Campaign = {
       id: data.id,
@@ -92,7 +97,7 @@ export default async function CampaignPage({
       category: data.category || "General",
       status: validStatus,
       prize: `${Number(data.prize_pool).toFixed(2)} SOL`,
-      submissions: 0,
+      submissions: submissionCount ?? 0,
       remaining: getRemainingTime(data.ends_at),
       tone: "from-orange-600/20 to-neutral-900",
       dynamic: true,

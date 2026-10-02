@@ -52,16 +52,16 @@ export async function getPickSubmissions(
     throw error;
   }
 
-  return (data ?? []).map((submission) => ({
+  return (data ?? []).map((submission, index) => ({
   id: submission.id,
-  submissionNo: submission.submission_no,
+  submissionNo: submission.submission_no ?? index + 1,
   caption: submission.caption,
   creator: submission.creator_id.slice(0, 8),
   creatorId: submission.creator_id,
   mediaUrl: submission.media_url,
   votes: "0",
   tone: "",
-  rank:0
+  rank: index + 1,
 }));
 }
 

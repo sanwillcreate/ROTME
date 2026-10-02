@@ -130,40 +130,25 @@ function PickCard({
   submission,
   selected,
   onSelect,
-  onPreview,
 }: {
   submission: Submission;
   selected: boolean;
   onSelect: () => void;
-  onPreview: () => void;
 }) {
   return (
-    <div
-      role="button"
-      tabIndex={0}
+    <button
+      type="button"
       onClick={onSelect}
-      onKeyDown={(event) => {
-        if (event.key === "Enter" || event.key === " ") {
-          event.preventDefault();
-          onSelect();
-        }
-      }}
-      className={`group flex cursor-pointer flex-col rounded-xl border p-3 text-left transition-all ${
+      className={`group flex flex-col rounded-xl border p-3 text-left transition-all ${
         selected
           ? "border-orange-500/60 bg-orange-500/[0.06]"
           : "border-white/10 bg-neutral-900/40 hover:-translate-y-0.5 hover:border-white/25"
       }`}
     >
-      <button
-        type="button"
-        onClick={(event) => {
-          event.stopPropagation();
-          onPreview();
-        }}
-        className={`relative h-32 w-full overflow-hidden rounded-lg border border-white/10 bg-neutral-900 sm:h-40 ${
-          submission.mediaUrl ? "" : `bg-gradient-to-br ${submission.tone}`
+      <div
+        className={`relative h-24 overflow-hidden rounded-lg border border-white/10 sm:h-28 ${
+          submission.mediaUrl ? "bg-neutral-900" : `bg-gradient-to-br ${submission.tone}`
         }`}
-        aria-label={`Preview ${submission.caption}`}
       >
         {submission.mediaUrl && (
           // eslint-disable-next-line @next/next/no-img-element
@@ -173,17 +158,12 @@ function PickCard({
             className="h-full w-full object-contain"
           />
         )}
-
-        <span className="absolute bottom-2 left-2 rounded-md bg-black/65 px-2 py-1 text-[10px] font-medium text-white/80 opacity-0 backdrop-blur-sm transition-opacity group-hover:opacity-100">
-          Click to preview
-        </span>
-
         {selected && (
           <span className="absolute right-1.5 top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-orange-500 text-[11px] font-bold text-white">
             ✓
           </span>
         )}
-      </button>
+      </div>
 
       <p className="mt-2.5 truncate text-xs text-neutral-300">
         &quot;{submission.caption}&quot;
@@ -192,75 +172,7 @@ function PickCard({
       <p className="mt-1 text-[11px] text-neutral-600">
         @{submission.creator} · #{submission.submissionNo}
       </p>
-    </div>
-  );
-}
-
-function MemePreviewModal({
-  submission,
-  onClose,
-}: {
-  submission: Submission;
-  onClose: () => void;
-}) {
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        onClose();
-      }
-    };
-
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [onClose]);
-
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm"
-      onClick={onClose}
-    >
-      <div
-        className="relative flex max-h-[92vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-white/10 bg-neutral-950 shadow-2xl"
-        onClick={(event) => event.stopPropagation()}
-      >
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Close preview"
-          className="absolute right-4 top-4 z-10 flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-black/70 text-lg text-neutral-300 backdrop-blur-sm transition-colors hover:bg-black hover:text-white"
-        >
-          ✕
-        </button>
-
-        <div className="flex min-h-0 items-center justify-center bg-black p-4 sm:p-8">
-          {submission.mediaUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={submission.mediaUrl}
-              alt={submission.caption}
-              className="max-h-[70vh] max-w-full object-contain"
-            />
-          ) : (
-            <div
-              className={`flex h-[50vh] w-full items-center justify-center bg-gradient-to-br ${submission.tone}`}
-            >
-              <span className="px-8 text-center text-lg text-white">
-                {submission.caption}
-              </span>
-            </div>
-          )}
-        </div>
-
-        <div className="border-t border-white/[0.06] p-5 sm:p-6">
-          <p className="text-base leading-relaxed text-neutral-100">
-            &quot;{submission.caption}&quot;
-          </p>
-          <p className="mt-2 text-xs text-neutral-500">
-            @{submission.creator} · #{submission.submissionNo}
-          </p>
-        </div>
-      </div>
-    </div>
+    </button>
   );
 }
 
@@ -269,11 +181,11 @@ function MemePreviewModal({
 // ============================================================
 function LoginModal({
   campaignId,
-  selectedSubmissionNo,
+  selectedSubmissionId,
   onClose,
 }: {
   campaignId: string;
-  selectedSubmissionNo: number;
+  selectedSubmissionId: string;
   onClose: () => void;
 }) {
   const [email, setEmail] = useState("");
@@ -296,7 +208,7 @@ function LoginModal({
       "rotme_pending_pick",
       JSON.stringify({
         campaignId,
-        submissionNo: selectedSubmissionNo,
+        submissionId: selectedSubmissionId,
       })
     );
 
@@ -424,7 +336,7 @@ function PickGrid({ campaign }: { campaign: Campaign }) {
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const [selected, setSelected] = useState<number | null>(null);
+  const [selected, setSelected] = useState<string | null>(null);
   const [confirmed, setConfirmed] = useState(false);
 
   const [existingPickId, setExistingPickId] = useState<string | null>(
@@ -432,8 +344,6 @@ function PickGrid({ campaign }: { campaign: Campaign }) {
   );
 
   const [showLogin, setShowLogin] = useState(false);
-  const [previewSubmission, setPreviewSubmission] =
-    useState<Submission | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
@@ -454,7 +364,7 @@ function PickGrid({ campaign }: { campaign: Campaign }) {
   }, [campaign.id]);
 
   const selectedSubmission = submissions.find(
-    (s) => s.submissionNo === selected
+    (s) => s.id === selected
   );
 
   const existingSubmission = submissions.find(
@@ -526,14 +436,14 @@ function PickGrid({ campaign }: { campaign: Campaign }) {
         if (parsed.campaignId !== campaign.id) return;
 
         const submission = submissions.find(
-          (s) => s.submissionNo === parsed.submissionNo
+          (s) => s.id === parsed.submissionId
         );
 
         if (!submission || !submission.id) return;
 
         localStorage.removeItem("rotme_pending_pick");
 
-        setSelected(submission.submissionNo);
+        setSelected(submission.id);
         await savePick(submission);
       } catch (error) {
         console.error("Failed to restore pending pick:", error);
@@ -567,57 +477,58 @@ function PickGrid({ campaign }: { campaign: Campaign }) {
   }
 
   if (existingSubmission) {
-  return (
-    <div className="mx-auto max-w-md text-center">
-      <SectionLabel>Your pick</SectionLabel>
+    return (
+      <div className="mx-auto max-w-md text-center">
+        <SectionLabel>Your pick</SectionLabel>
 
-      <div className="mt-4 rounded-xl border border-orange-500/40 bg-orange-500/[0.05] p-5">
-        <div
-          className={`h-40 overflow-hidden rounded-lg border border-white/10 ${
-            existingSubmission.mediaUrl
-              ? "bg-neutral-900"
-              : `bg-gradient-to-br ${existingSubmission.tone}`
-          }`}
-        >
-          {existingSubmission.mediaUrl && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={existingSubmission.mediaUrl}
-              alt={existingSubmission.caption}
-              className="h-full w-full object-contain"
-            />
-          )}
+        <div className="mt-4 rounded-xl border border-orange-500/40 bg-orange-500/[0.05] p-5">
+          <div
+            className={`h-40 overflow-hidden rounded-lg border border-white/10 ${
+              existingSubmission.mediaUrl
+                ? "bg-neutral-900"
+                : `bg-gradient-to-br ${existingSubmission.tone}`
+            }`}
+          >
+            {existingSubmission.mediaUrl && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={existingSubmission.mediaUrl}
+                alt={existingSubmission.caption}
+                className="h-full w-full object-cover"
+              />
+            )}
+          </div>
+
+          <p className="mt-4 text-sm text-neutral-200">
+            &quot;{existingSubmission.caption}&quot;
+          </p>
+
+          <p className="mt-1 text-xs text-neutral-500">
+            @{existingSubmission.creator} · #
+            {existingSubmission.submissionNo}
+          </p>
         </div>
 
-        <p className="mt-4 text-sm text-neutral-200">
-          &quot;{existingSubmission.caption}&quot;
+        <p className="mt-5 text-sm font-medium text-neutral-300">
+          Your pick has been recorded.
         </p>
 
         <p className="mt-1 text-xs text-neutral-500">
-          @{existingSubmission.creator} · #{existingSubmission.submissionNo}
+          Rankings stay hidden until {campaign.title} ends — check back
+          to see if it made the Top 5.
         </p>
+
+        <a
+          href={twitterIntent}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-6 inline-flex rounded-lg bg-orange-600 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-orange-500"
+        >
+          Share your pick on X
+        </a>
       </div>
-
-      <p className="mt-5 text-sm font-medium text-neutral-300">
-        Your pick has been recorded.
-      </p>
-
-      <p className="mt-1 text-xs text-neutral-500">
-        Rankings stay hidden until {campaign.title} ends — check back
-        to see if it made the Top 5.
-      </p>
-
-      <a
-        href={twitterIntent}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="mt-6 inline-flex rounded-lg bg-orange-600 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-orange-500"
-      >
-        Share your pick on X
-      </a>
-    </div>
-  );
-}
+    );
+  }
 
   return (
     <>
@@ -625,17 +536,16 @@ function PickGrid({ campaign }: { campaign: Campaign }) {
         <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
           {submissions.map((s) => (
             <PickCard
-              key={s.id ?? s.submissionNo}
+              key={s.id}
               submission={s}
-              selected={selected === s.submissionNo}
+              selected={selected === s.id}
               onSelect={() =>
                 setSelected((cur) =>
-                  cur === s.submissionNo
+                  cur === s.id
                     ? null
-                    : s.submissionNo
+                    : s.id!
                 )
               }
-              onPreview={() => setPreviewSubmission(s)}
             />
           ))}
         </div>
@@ -673,15 +583,8 @@ function PickGrid({ campaign }: { campaign: Campaign }) {
       {showLogin && selected !== null && (
         <LoginModal
           campaignId={campaign.id}
-          selectedSubmissionNo={selected}
+          selectedSubmissionId={selected}
           onClose={() => setShowLogin(false)}
-        />
-      )}
-
-      {previewSubmission && (
-        <MemePreviewModal
-          submission={previewSubmission}
-          onClose={() => setPreviewSubmission(null)}
         />
       )}
     </>

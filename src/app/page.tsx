@@ -429,7 +429,30 @@ function useHomepageCampaigns() {
         setLoading(false);
         return;
       }
+      const campaignIds = (data ?? []).map((campaign) => campaign.id);
 
+const { data: submissionRows, error: submissionError } = await supabase
+  .from("submissions")
+  .select("campaign_id")
+  .in("campaign_id", campaignIds)
+  .eq("status", "approved");
+
+if (submissionError) {
+  console.error("Failed to fetch submission counts:", submissionError);
+}
+
+const submissionCounts = new Map<string, number>();
+console.log("SUBMISSION ROWS:", submissionRows);
+console.log("CAMPAIGN IDS:", campaignIds);
+
+for (const row of submissionRows ?? []) {
+  console.log("PROCESSING ROW:", row);
+  submissionCounts.set(
+    row.campaign_id,
+    (submissionCounts.get(row.campaign_id) ?? 0) + 1
+  );
+}
+console.log("HOMEPAGE COUNTS:", Object.fromEntries(submissionCounts));
       const now = Date.now();
 
       const dbCampaigns: Campaign[] = (data ?? [])
@@ -469,7 +492,11 @@ function useHomepageCampaigns() {
             category: campaign.category || "General",
             status,
             prize: `${Number(campaign.prize_pool).toFixed(2)} SOL`,
-            submissions: 0,
+            submissions: (() => {
+  const count = submissionCounts.get(campaign.id) ?? 0;
+  console.log("CARD COUNT:", campaign.id, count);
+  return count;
+})(),
             remaining,
             tone: "from-orange-600/20 to-neutral-900",
             dynamic: true,
