@@ -5,6 +5,10 @@ import Link from "next/link";
 import { type Campaign } from "./campaign/[id]/data";
 import { supabase } from "./lib/supabase";
 import WalletButton from "./components/WalletButton";
+import {
+  DraggableCardBody,
+  DraggableCardContainer,
+} from "./components/ui/draggable-card";
 import ProfileMenu from "./components/ProfileMenu";
 // ============================================================
 // DATA
@@ -259,40 +263,71 @@ function Hero() {
           </div>
         </div>
 
-        <div className="relative hidden lg:block">
-          <div className="relative ml-auto w-full max-w-sm">
-            <div className="absolute -top-6 -left-6 w-full rounded-2xl border border-white/10 bg-neutral-900/60 p-4 rotate-[-4deg] shadow-2xl shadow-black/40">
-              <div className="h-24 rounded-lg bg-gradient-to-br from-orange-600/25 to-neutral-800" />
+        {/* Draggable meme card stack */}
+        <div className="relative hidden h-[460px] translate-x-12 translate-y-12 lg:block">
+          <DraggableCardContainer className="relative flex h-full w-full items-center justify-center overflow-visible">
 
-              <p className="mt-3 text-xs text-neutral-400">
-                &quot;when the deploy finally works&quot;
-              </p>
-
-              <div className="mt-2 flex items-center justify-between text-[11px] text-neutral-500">
-                <span>@devgirl</span>
-                <span className="text-orange-500">↑ 22%</span>
+            {/* Back card */}
+            <DraggableCardBody
+              className="absolute left-1/2 top-1/2 z-10 w-[290px] -translate-x-1/2 -translate-y-1/2 rotate-[-14deg] bg-neutral-950 p-3"
+            >
+              <div className="h-[300px] w-full overflow-hidden rounded-sm">
+                <img
+                  src="/memes/hero-meme-1.png"
+                  alt="Meme about a successful deployment"
+                  draggable={false}
+                  className="pointer-events-none h-full w-full object-cover"
+                />
               </div>
-            </div>
 
-            <div className="relative w-full rounded-2xl border border-white/10 bg-neutral-900/80 p-4 rotate-[3deg] shadow-2xl shadow-black/50">
-              <div className="h-28 rounded-lg bg-gradient-to-br from-neutral-700/50 to-neutral-900" />
-
-              <p className="mt-3 text-xs text-neutral-400">
-                &quot;POV: production is working&quot;
+              <p className="mt-4 text-center text-lg font-semibold text-neutral-200">
+                when the deploy finally works
               </p>
+            </DraggableCardBody>
 
-              <div className="mt-2 flex items-center justify-between text-[11px] text-neutral-500">
-                <span>@someone</span>
-                <span className="text-orange-500">↑ 4%</span>
+            {/* Middle card */}
+            <DraggableCardBody
+              className="absolute left-1/2 top-1/2 z-20 w-[290px] -translate-x-1/2 -translate-y-1/2 rotate-[10deg] bg-neutral-950 p-3"
+            >
+              <div className="h-[300px] w-full overflow-hidden rounded-sm">
+                <img
+                  src="/memes/hero-meme-1.png"
+                  alt="Meme about a successful deployment"
+                  draggable={false}
+                  className="pointer-events-none h-full w-full object-cover"
+                />
               </div>
-            </div>
-          </div>
+
+              <p className="mt-4 text-center text-lg font-semibold text-neutral-200">
+                when the deploy finally works
+              </p>
+            </DraggableCardBody>
+
+            {/* Front card */}
+            <DraggableCardBody
+              className="absolute left-1/2 top-1/2 z-30 w-[290px] -translate-x-1/2 -translate-y-1/2 rotate-[-2deg] bg-neutral-950 p-3"
+            >
+              <div className="h-[300px] w-full overflow-hidden rounded-sm">
+                <img
+                  src="/memes/hero-meme-2.png"
+                  alt="When your code creates a bug"
+                  draggable={false}
+                  className="pointer-events-none h-full w-full object-cover"
+                />
+              </div>
+
+              <p className="mt-4 text-center text-lg font-semibold text-neutral-200">
+                when your pushed code creates a bug
+              </p>
+            </DraggableCardBody>
+
+          </DraggableCardContainer>
         </div>
-      </div>
+
+  </div>
     </section>
   );
 }
-
 // ============================================================
 // LIVE TICKER
 // ============================================================

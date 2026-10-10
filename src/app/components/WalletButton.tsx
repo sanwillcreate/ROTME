@@ -47,11 +47,6 @@ export default function WalletButton() {
               ? `${balance.toFixed(3)} SOL`
               : "Balance unavailable"}
           </div>
-          {hasSupabaseUser === false && (
-            <div className="mt-0.5 text-[11px] text-orange-400">
-              Sign in to link your wallet to ROT ME.
-            </div>
-          )}
         </div>
         <button
           onClick={disconnect}

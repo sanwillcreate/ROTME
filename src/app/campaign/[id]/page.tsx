@@ -2,7 +2,6 @@ import { notFound } from "next/navigation";
 import { campaignData, Campaign } from "./data";
 import CampaignDetail from "./CampaignDetail";
 import { supabase } from "../../lib/supabase";
-
 export const dynamic = "force-dynamic";
 
 type CampaignPageProps = {
