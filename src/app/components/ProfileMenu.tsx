@@ -58,8 +58,11 @@ async function loadProfileStats(userId: string): Promise<ProfileStats> {
 // SIGN-IN PROMPT (reuses the same Supabase magic-link mechanism
 // used elsewhere in the app — not a second auth system)
 // ============================================================
-
-function SignInPrompt() {
+export function SignInPrompt({
+  heading = "Sign in to view your profile.",
+}: {
+  heading?: string;
+}) {
   const [email, setEmail] = useState("");
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
