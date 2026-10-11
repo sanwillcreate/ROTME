@@ -8,30 +8,58 @@ import {
   getSubmissions,
 } from "./data";
 
-// ============================================================
-// PRIMITIVES
-// ============================================================
+// Orange and neutral outlines are inline: the global `* { border-color }`
+// rule in globals.css overrides border-orange-* utilities.
+const ORANGE = "#f97316";
+const ORANGE_LINE = "rgba(249,115,22,0.35)";
+const NEUTRAL_LINE = "rgba(255,255,255,0.14)";
 
-function SectionLabel({ children }: { children: React.ReactNode }) {
+const ANTON = "font-[family-name:var(--font-anton)]";
+const GEIST = "font-[family-name:var(--font-geist-sans)]";
+
+// Server-supplied, real approved submissions for database campaigns.
+export type ApprovedSubmission = {
+  id: string;
+  caption: string;
+  mediaUrl: string | null;
+  postedAgo: string;
+};
+
+// The route supplies remaining as "3d 4h remaining". Display without suffix.
+function timeLeftOf(campaign: Campaign): string {
+  return campaign.remaining.replace(/ remaining$/, "");
+}
+
+function ArrowIcon() {
   return (
-    <span className="text-[11px] font-medium uppercase tracking-[0.18em] text-orange-500/80">
-      {children}
-    </span>
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="h-4 w-4"
+    >
+      <path d="M5 12h14M13 6l6 6-6 6" />
+    </svg>
   );
 }
 
-function StatusBadge({ status }: { status: Campaign["status"] }) {
-  const isEnded = status === "Ended";
-  const isEndingSoon = status === "Ending soon";
+function StatusPill({ status }: { status: Campaign["status"] }) {
+  const ended = status === "Ended";
+  const endingSoon = status === "Ending soon";
 
   return (
     <span
-      className={`rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide ${
-        isEnded
-          ? "border-white/15 bg-white/[0.04] text-neutral-400"
-          : isEndingSoon
-            ? "border-orange-500/30 bg-orange-500/10 text-orange-400"
-            : "border-emerald-500/25 bg-emerald-500/10 text-emerald-400"
+      style={{ borderColor: endingSoon ? ORANGE_LINE : NEUTRAL_LINE }}
+      className={`shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] ${
+        endingSoon
+          ? "text-orange-400"
+          : ended
+            ? "bg-white/[0.03] text-neutral-400"
+            : "text-emerald-400"
       }`}
     >
       {status}
@@ -39,339 +67,376 @@ function StatusBadge({ status }: { status: Campaign["status"] }) {
   );
 }
 
-// ============================================================
-// HEADER
-// ============================================================
-
-function CampaignHeader({ campaign }: { campaign: Campaign }) {
+function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
-    <section className="border-b border-white/[0.06]">
-      <div className="mx-auto max-w-7xl px-5 sm:px-8 pt-8 pb-12">
-        <Link
-          href="/#campaigns"
-          className="inline-flex items-center gap-1.5 text-sm text-neutral-500 hover:text-neutral-300 transition-colors"
-        >
-          ← Back to campaigns
-        </Link>
+    <h2 className="text-lg font-semibold tracking-tight text-white">
+      {children}
+    </h2>
+  );
+}
 
-        <div className="mt-8 flex flex-wrap items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-neutral-800 text-sm font-semibold text-neutral-200">
-            {campaign.initial}
+// ============================================================
+// HERO: title, description, and the only Submit / Pick buttons
+// ============================================================
+
+function CampaignHero({ campaign }: { campaign: Campaign }) {
+  const ended = campaign.status === "Ended";
+
+  return (
+    <section className="border-b border-white/[0.08]">
+      <div className="mx-auto grid max-w-7xl gap-10 px-5 pb-12 pt-10 sm:px-8 lg:grid-cols-[1fr_auto] lg:items-end lg:gap-16 lg:pb-16">
+        <div className="min-w-0">
+          <Link
+            href="/campaigns"
+            className="inline-flex items-center gap-1.5 text-sm text-neutral-500 transition-colors hover:text-neutral-300"
+          >
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="h-4 w-4"
+            >
+              <path d="M19 12H5M11 6l-6 6 6 6" />
+            </svg>
+            Back to campaigns
+          </Link>
+
+          <div className="mt-8 flex flex-wrap items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-md bg-neutral-900 text-sm font-semibold text-neutral-200">
+              {campaign.initial}
+            </div>
+            <span className="text-sm text-neutral-300">{campaign.brand}</span>
+            <span className="text-neutral-700">·</span>
+            <span className="text-xs uppercase tracking-[0.14em] text-neutral-500">
+              {campaign.category}
+            </span>
+            <StatusPill status={campaign.status} />
           </div>
 
-          <span className="text-sm text-neutral-400">{campaign.brand}</span>
-          <span className="text-neutral-700">·</span>
+          <h1
+            className={`${ANTON} mt-6 text-[2.75rem] leading-[0.95] tracking-[-0.005em] text-white sm:text-6xl lg:text-[4.5rem]`}
+          >
+            <span className="relative inline-block">
+              {campaign.title}
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 300 14"
+                preserveAspectRatio="none"
+                className="pointer-events-none absolute -bottom-3 left-0 h-3 w-3/4 overflow-visible"
+                fill="none"
+              >
+                <path
+                  d="M2 9 C 70 3, 170 12, 290 5"
+                  stroke={ORANGE}
+                  strokeWidth={3}
+                  strokeLinecap="round"
+                  vectorEffect="non-scaling-stroke"
+                />
+              </svg>
+            </span>
+          </h1>
 
-          <span className="text-xs uppercase tracking-wide text-neutral-500">
-            {campaign.category}
-          </span>
+          <p className="mt-6 max-w-xl text-base leading-relaxed text-neutral-400 sm:text-lg">
+            {campaign.description}
+          </p>
 
-          <StatusBadge status={campaign.status} />
+          {campaign.productName && (
+            <p className="mt-5 text-sm text-neutral-300">
+              <span className="text-xs uppercase tracking-[0.14em] text-neutral-600">
+                Product{" "}
+              </span>
+              {campaign.productName}
+            </p>
+          )}
+
+          {campaign.creatorBrief && (
+            <div className="mt-6 max-w-2xl rounded-xl border border-white/[0.08] bg-black p-5">
+              <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-500">
+                Creator brief
+              </p>
+              <p className="mt-2 text-sm leading-relaxed text-neutral-300">
+                {campaign.creatorBrief}
+              </p>
+            </div>
+          )}
+
+          <div className="mt-8 flex flex-wrap gap-3">
+            {ended ? (
+              <Link
+                href={`/campaign/${campaign.id}/pick`}
+                className="inline-flex items-center gap-2 rounded-lg bg-orange-600 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-orange-500"
+              >
+                View Final Results
+                <ArrowIcon />
+              </Link>
+            ) : (
+              <>
+                <Link
+                  href={`/campaign/${campaign.id}/submit`}
+                  className="inline-flex items-center gap-2 rounded-lg bg-orange-600 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-orange-500"
+                >
+                  Submit a Meme
+                  <ArrowIcon />
+                </Link>
+                <Link
+                  href={`/campaign/${campaign.id}/pick`}
+                  style={{ borderColor: NEUTRAL_LINE }}
+                  className="inline-flex items-center gap-2 rounded-lg border px-5 py-3 text-sm font-semibold text-neutral-200 transition-colors hover:bg-white/[0.04]"
+                >
+                  Pick the Top 5
+                  <ArrowIcon />
+                </Link>
+              </>
+            )}
+          </div>
         </div>
 
-        <h1 className="mt-5 max-w-2xl text-3xl sm:text-4xl md:text-5xl font-semibold tracking-tight text-neutral-50 leading-[1.05]">
-          {campaign.title}
-        </h1>
-
-        <p className="mt-4 max-w-xl text-base sm:text-lg text-neutral-400 leading-relaxed">
-          {campaign.description}
-        </p>
-        {campaign.productName && (
-  <div className="mt-5">
-    <span className="text-xs uppercase tracking-[0.14em] text-neutral-600">
-      Product
-    </span>
-    <p className="mt-1 text-sm font-medium text-neutral-300">
-      {campaign.productName}
-    </p>
-  </div>
-)}
-
-{campaign.creatorBrief && (
-  <div className="mt-7 max-w-2xl rounded-xl border border-orange-500/15 bg-orange-500/[0.035] p-5">
-    <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-orange-500/80">
-      Creator brief
-    </div>
-
-    <p className="mt-2 text-sm leading-relaxed text-neutral-300">
-      {campaign.creatorBrief}
-    </p>
-  </div>
-)}
-
-        <div className="mt-8 flex flex-wrap gap-3">
-  {campaign.status === "Ended" ? (
-    <Link
-      href={`/campaign/${campaign.id}/pick`}
-      className="inline-flex rounded-lg bg-orange-600 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-orange-500"
-    >
-      View Final Results →
-    </Link>
-  ) : (
-    <>
-      <Link
-        href={`/campaign/${campaign.id}/submit`}
-        className="inline-flex rounded-lg bg-orange-600 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-orange-500"
-      >
-        Submit a Meme
-      </Link>
-
-      <Link
-        href={`/campaign/${campaign.id}/pick`}
-        className="inline-flex rounded-lg border border-white/10 px-5 py-3 text-sm font-semibold text-neutral-200 transition-colors hover:bg-white/5"
-      >
-        Pick the Top 5 →
-      </Link>
-    </>
-  )}
-</div>
-
-        <div className="mt-10 flex flex-wrap items-center gap-8 text-sm text-neutral-500">
+        <dl className="grid grid-cols-1 gap-6 border-t border-white/[0.08] pt-6 sm:grid-cols-3 lg:min-w-[380px] lg:border-l lg:border-t-0 lg:pl-12 lg:pt-0">
           <div>
-            <div className="text-xl font-semibold text-neutral-100">
+            <dt className="text-[10px] font-medium uppercase tracking-[0.16em] text-neutral-500">
+              Prize pool
+            </dt>
+            <dd className="mt-2 text-2xl font-semibold tabular-nums text-white">
               {campaign.prize}
-            </div>
-            <div>prize pool</div>
+            </dd>
           </div>
-
-          <div className="h-8 w-px bg-white/10" />
-
           <div>
-            <div className="text-xl font-semibold text-neutral-100">
+            <dt className="text-[10px] font-medium uppercase tracking-[0.16em] text-neutral-500">
+              Submissions
+            </dt>
+            <dd className="mt-2 text-2xl font-semibold tabular-nums text-white">
               {campaign.submissions}
-            </div>
-            <div>submissions</div>
+            </dd>
           </div>
-
-          <div className="h-8 w-px bg-white/10" />
-
           <div>
-            <div className="text-xl font-semibold text-neutral-100">
-              {campaign.remaining.split(" ")[0]}
-            </div>
-            <div>remaining</div>
+            <dt className="text-[10px] font-medium uppercase tracking-[0.16em] text-neutral-500">
+              {ended ? "Status" : "Time left"}
+            </dt>
+            <dd className="mt-2 text-2xl font-semibold text-white">
+              {ended ? "Closed" : timeLeftOf(campaign)}
+            </dd>
           </div>
-        </div>
+        </dl>
       </div>
     </section>
   );
 }
 
 // ============================================================
-// RULES
+// LEFT COLUMN
 // ============================================================
 
 function CampaignRules({ campaign }: { campaign: Campaign }) {
-  return (
-    <div className="rounded-xl border border-white/10 bg-neutral-900/30 p-6 sm:p-7">
-      <h2 className="text-lg font-semibold text-neutral-50">
-        Campaign rules
-      </h2>
+  const rules = campaign.rules?.length ? campaign.rules : campaignRules;
 
-      <ul className="mt-4 space-y-2.5">
-        {(campaign.rules?.length ? campaign.rules : campaignRules).map((rule) => (
+  return (
+    <div className="rounded-xl border border-white/[0.08] bg-black p-6 sm:p-7">
+      <SectionTitle>Campaign rules</SectionTitle>
+
+      <ol className="mt-5 space-y-3">
+        {rules.map((rule, i) => (
           <li
-            key={rule}
-            className="flex items-start gap-2.5 text-sm text-neutral-400"
+            key={`${i}-${rule}`}
+            className="flex items-start gap-3 text-sm text-neutral-300"
           >
-            <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-neutral-600" />
-            {rule}
+            <span
+              style={{ borderColor: ORANGE_LINE }}
+              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-xs font-semibold text-orange-400"
+            >
+              {i + 1}
+            </span>
+            <span className="pt-0.5">{rule}</span>
           </li>
         ))}
-      </ul>
+      </ol>
 
-      <div className="mt-6 border-t border-white/[0.06] pt-5">
+      <div className="mt-7 border-t border-white/[0.08] pt-6">
         <h3 className="text-sm font-semibold text-neutral-200">
           How judging works
         </h3>
-
-        <p className="mt-2 text-sm text-neutral-400 leading-relaxed">
-          Approved submissions are shown to the community below. Every vote
-          counts toward a meme&apos;s score, and the campaign leaderboard
-          updates as votes come in. When the campaign ends, the top-scoring
-          memes take the prize pool.
+        <p className="mt-2 text-sm leading-relaxed text-neutral-400">
+          Approved memes enter the judging pool. Everyone gets one pick, and
+          rankings stay hidden while the campaign is running. When it ends, the
+          Top 5 is revealed and the prize pool is split 50, 25, 15, 7 and 3
+          percent across the five memes. Correct early picks earn MemeTaste.
         </p>
       </div>
     </div>
   );
 }
 
-// ============================================================
-// SUBMIT MEME
-// ============================================================
+type GalleryItem = {
+  id: string;
+  caption: string;
+  mediaUrl: string | null;
+  tone?: string;
+  postedAgo: string;
+};
 
-function SubmitMeme({ campaignId }: { campaignId: string }) {
-  return (
-    <div
-      id="submit"
-      className="rounded-xl border border-white/10 bg-neutral-900/30 p-6 sm:p-7"
-    >
-      <h2 className="text-lg font-semibold text-neutral-50">
-        Submit your meme
-      </h2>
-
-      <p className="mt-1 text-sm text-neutral-500">
-        Think you&apos;ve got something better?
-      </p>
-
-      <Link
-        href={`/campaign/${campaignId}/submit`}
-        className="mt-6 inline-flex rounded-lg bg-orange-600 px-6 py-3 text-sm font-semibold text-white hover:bg-orange-500 transition-colors"
-      >
-        Submit a meme
-      </Link>
-    </div>
-  );
-}
-
-// ============================================================
-// SUBMISSIONS GRID
-// ============================================================
-
-function SubmissionsGrid({
-  campaignId,
-  dynamic,
+function SubmissionsPanel({
+  campaign,
+  approved,
 }: {
-  campaignId: string;
-  dynamic?: boolean;
+  campaign: Campaign;
+  approved: ApprovedSubmission[];
 }) {
-  const submissions = dynamic ? [] : getSubmissions(campaignId);
-  return (
-    <div>
-      <h2 className="text-lg font-semibold text-neutral-50">
-        Approved submissions
-      </h2>
+  // Database campaigns show real approved rows. Static prototype campaigns
+  // keep their existing sample gallery.
+  const items: GalleryItem[] = campaign.dynamic
+    ? approved.map((a) => ({ ...a, tone: undefined }))
+    : getSubmissions(campaign.id).map((s) => ({
+        id: String(s.submissionNo),
+        caption: s.caption,
+        mediaUrl: null,
+        tone: s.tone,
+        postedAgo: "",
+      }));
 
-      <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {submissions.map((s) => (
-          <div
-            key={s.submissionNo}
-            className="group rounded-xl border border-white/10 bg-neutral-900/40 p-4 transition-colors hover:border-white/20 hover:bg-neutral-900/70"
+  const count = campaign.dynamic ? campaign.submissions : items.length;
+
+  return (
+    <div className="rounded-xl border border-white/[0.08] bg-black p-6 sm:p-7">
+      <div className="flex items-center justify-between gap-4">
+        <SectionTitle>Approved submissions ({count})</SectionTitle>
+        {campaign.dynamic && count > 0 && (
+          <Link
+            href={`/campaign/${campaign.id}/pick`}
+            className="inline-flex shrink-0 items-center gap-1.5 text-sm text-neutral-400 transition-colors hover:text-white"
           >
-            <div
-              className={`relative h-32 rounded-lg bg-gradient-to-br ${s.tone} border border-white/10`}
+            View all
+            <ArrowIcon />
+          </Link>
+        )}
+      </div>
+
+      {items.length === 0 ? (
+        <p className="mt-6 text-sm text-neutral-500">
+          No approved submissions yet.
+        </p>
+      ) : (
+        <ul className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {items.map((item) => (
+            <li
+              key={item.id}
+              className="overflow-hidden rounded-xl border border-white/[0.08] bg-neutral-950"
             >
-              {s.featured && (
-                <span className="absolute top-2 left-2 rounded-full border border-orange-500/30 bg-neutral-950/70 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-orange-400">
-                  #1
-                </span>
-              )}
-            </div>
-
-            <p className="mt-3 truncate text-sm text-neutral-300">
-              &quot;{s.caption}&quot;
-            </p>
-
-            <div className="mt-2 flex items-center justify-between text-xs text-neutral-500">
-              <span>
-                @{s.creator} · #{s.submissionNo}
-              </span>
-
-              <span className="font-medium text-neutral-300">
-                {s.votes} votes
-              </span>
-            </div>
-          </div>
-        ))}
-      </div>
+              <div
+                className={`aspect-[4/3] w-full bg-neutral-900 ${
+                  item.tone && !item.mediaUrl
+                    ? `bg-gradient-to-br ${item.tone}`
+                    : ""
+                }`}
+              >
+                {item.mediaUrl && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={item.mediaUrl}
+                    alt={item.caption}
+                    className="h-full w-full object-cover"
+                  />
+                )}
+              </div>
+              <div className="p-3.5">
+                <p className="truncate text-sm text-neutral-200">
+                  {item.caption}
+                </p>
+                {item.postedAgo && (
+                  <p className="mt-1 text-xs text-neutral-500">
+                    {item.postedAgo}
+                  </p>
+                )}
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
 
 // ============================================================
-// LEADERBOARD
+// RIGHT COLUMN
 // ============================================================
 
-function CampaignLeaderboard({
-  campaignId,
-  dynamic,
-}: {
-  campaignId: string;
-  dynamic?: boolean;
-}) {
-  const leaderboard = dynamic ? [] : getLeaderboard(campaignId);
-
-  return (
-    <div>
-      <h2 className="text-lg font-semibold text-neutral-50">
-        Campaign leaderboard
-      </h2>
-
-      <div className="mt-5 rounded-xl border border-white/10 bg-neutral-900/30 px-5 sm:px-6">
-        {leaderboard.map((entry) => (
-          <div
-            key={entry.rank}
-            className="flex items-center justify-between border-b border-white/[0.06] py-4 last:border-b-0 transition-colors hover:bg-white/[0.02] -mx-5 sm:-mx-6 px-5 sm:px-6"
-          >
-            <div className="flex items-center gap-4">
-              <span className="w-6 text-sm font-semibold text-neutral-500">
-                {entry.rank}
-              </span>
-
-              <span className="text-sm text-neutral-100">
-                @{entry.handle}
-              </span>
-            </div>
-
-            <span className="text-sm font-medium text-neutral-300">
-              {entry.votes} votes
-            </span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// ============================================================
-// SIDEBAR
-// ============================================================
-
-function CampaignSidebar({ campaign }: { campaign: Campaign }) {
+function CampaignInfo({ campaign }: { campaign: Campaign }) {
   const rows = [
     { label: "Prize pool", value: campaign.prize },
-    { label: "Ends in", value: campaign.remaining.split(" ")[0] },
+    {
+      label: campaign.status === "Ended" ? "Status" : "Time left",
+      value: campaign.status === "Ended" ? "Closed" : timeLeftOf(campaign),
+    },
     { label: "Submissions", value: String(campaign.submissions) },
-    { label: "Judging", value: "Community voting" },
+    { label: "Judging", value: "Community picks" },
   ];
 
   return (
-    <div className="rounded-xl border border-white/10 bg-neutral-900/30 p-6 lg:sticky lg:top-24">
+    <div className="rounded-xl border border-white/[0.08] bg-black p-6">
       <div className="flex items-center justify-between">
-        <SectionLabel>Campaign info</SectionLabel>
-        <StatusBadge status={campaign.status} />
+        <SectionTitle>Campaign info</SectionTitle>
+        <StatusPill status={campaign.status} />
       </div>
 
-      <div className="mt-5 divide-y divide-white/[0.06]">
+      <dl className="mt-5 divide-y divide-white/[0.08]">
         {rows.map((row) => (
           <div
             key={row.label}
-            className="flex items-center justify-between py-3 first:pt-0 last:pb-0"
+            className="flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0"
           >
-            <span className="text-sm text-neutral-500">
-              {row.label}
-            </span>
-
-            <span className="text-sm font-medium text-neutral-100">
+            <dt className="text-sm text-neutral-500">{row.label}</dt>
+            <dd className="text-right text-sm font-medium text-neutral-100">
               {row.value}
-            </span>
+            </dd>
           </div>
         ))}
-      </div>
+      </dl>
+    </div>
+  );
+}
 
-      <a
-        href={`/campaign/${campaign.id}/submit`}
-        className="mt-6 block w-full rounded-lg bg-orange-600 py-2.5 text-center text-sm font-semibold text-white hover:bg-orange-500 transition-colors"
-      >
-        Submit a Meme
-      </a>
+function CampaignLeaderboard({ campaign }: { campaign: Campaign }) {
+  // Database campaigns: no ranking data yet, so say so rather than invent it.
+  const entries = campaign.dynamic ? [] : getLeaderboard(campaign.id);
 
-      <Link
-        href={`/campaign/${campaign.id}/pick`}
-        className="mt-3 block w-full rounded-lg border border-white/15 py-2.5 text-center text-sm font-semibold text-neutral-200 hover:bg-white/5 transition-colors"
-      >
-        Pick the Top 5 →
-      </Link>
+  return (
+    <div className="rounded-xl border border-white/[0.08] bg-black p-6">
+      <SectionTitle>Campaign leaderboard</SectionTitle>
+
+      {entries.length === 0 ? (
+        <p className="mt-5 text-sm text-neutral-500">
+          Rankings appear once the community starts picking.
+        </p>
+      ) : (
+        <ol className="mt-5 divide-y divide-white/[0.08]">
+          {entries.map((entry) => (
+            <li
+              key={entry.rank}
+              className="flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0"
+            >
+              <div className="flex min-w-0 items-center gap-3">
+                <span
+                  className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${
+                    entry.rank === 1
+                      ? "bg-orange-500 text-black"
+                      : "bg-neutral-800 text-neutral-300"
+                  }`}
+                >
+                  {entry.rank}
+                </span>
+                <span className="truncate text-sm text-neutral-100">
+                  @{entry.handle}
+                </span>
+              </div>
+              <span className="shrink-0 text-sm font-medium text-neutral-300">
+                {entry.votes} votes
+              </span>
+            </li>
+          ))}
+        </ol>
+      )}
     </div>
   );
 }
@@ -382,35 +447,25 @@ function CampaignSidebar({ campaign }: { campaign: Campaign }) {
 
 export default function CampaignDetail({
   campaign,
+  approvedSubmissions = [],
 }: {
   campaign: Campaign;
+  approvedSubmissions?: ApprovedSubmission[];
 }) {
   return (
-    <main className="min-h-screen bg-neutral-950 text-neutral-100">
-      <CampaignHeader campaign={campaign} />
+    <main className={`${GEIST} min-h-screen bg-[#080808] text-neutral-100`}>
+      <CampaignHero campaign={campaign} />
 
-      <section className="py-14 sm:py-20">
-        <div className="mx-auto max-w-7xl px-5 sm:px-8 grid lg:grid-cols-[1fr_320px] gap-10 lg:gap-14 items-start">
-          <div className="space-y-14">
-            <CampaignRules campaign={campaign} />
-
-           
-
-            <SubmitMeme campaignId={campaign.id} />
-
-            <SubmissionsGrid
-  campaignId={campaign.id}
-  dynamic={campaign.dynamic}
-/>
-
-<CampaignLeaderboard
-  campaignId={campaign.id}
-  dynamic={campaign.dynamic}
-/>
-          </div>
-
-          <CampaignSidebar campaign={campaign} />
+      <section className="mx-auto grid max-w-7xl gap-8 px-5 py-12 sm:px-8 lg:grid-cols-[1fr_340px] lg:gap-10 lg:py-16">
+        <div className="space-y-8 min-w-0">
+          <CampaignRules campaign={campaign} />
+          <SubmissionsPanel campaign={campaign} approved={approvedSubmissions} />
         </div>
+
+        <aside className="space-y-8 lg:sticky lg:top-24 lg:self-start">
+          <CampaignInfo campaign={campaign} />
+          <CampaignLeaderboard campaign={campaign} />
+        </aside>
       </section>
     </main>
   );

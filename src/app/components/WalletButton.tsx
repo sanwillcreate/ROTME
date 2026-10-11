@@ -1,8 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { useWallet } from "../lib/wallet";
-import { supabase } from "../lib/supabase";
 
 function shortenAddress(address: string): string {
   return `${address.slice(0, 4)}...${address.slice(-4)}`;
@@ -11,24 +9,6 @@ function shortenAddress(address: string): string {
 export default function WalletButton() {
   const { status, publicKey, balance, balanceLoading, error, connect, disconnect } =
     useWallet();
-
-  // Only used to decide whether to show the "sign in to link" hint —
-  // wallet connection itself never requires a ROT ME login.
-  const [hasSupabaseUser, setHasSupabaseUser] = useState<boolean | null>(null);
-
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      setHasSupabaseUser(!!data.user);
-    });
-
-    const { data: listener } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        setHasSupabaseUser(!!session?.user);
-      }
-    );
-
-    return () => listener.subscription.unsubscribe();
-  }, []);
 
   if (status === "connected" && publicKey) {
     return (
