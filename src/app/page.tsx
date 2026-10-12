@@ -132,26 +132,7 @@ function Hero() {
             </Link>
           </div>
 
-          <div className="rise-in rise-in-d3 mt-12 flex flex-wrap items-center gap-x-8 gap-y-5">
-            {heroFacts.map((fact, i) => (
-              <div key={fact.label} className="flex items-center gap-8">
-                {i > 0 && (
-                  <span
-                    aria-hidden
-                    className="hidden h-8 w-px bg-white/10 sm:block"
-                  />
-                )}
-                <div className="flex flex-col-reverse">
-                  <span className="mt-1 text-xs text-neutral-500">
-                    {fact.label}
-                  </span>
-                  <span className="text-xl font-semibold text-neutral-100">
-                    {fact.value}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
+          
         </div>
 
         {/* Draggable meme card stack */}
@@ -177,7 +158,7 @@ function Hero() {
             <DraggableCardBody className="absolute left-1/2 top-1/2 z-20 w-[290px] -translate-x-1/2 -translate-y-1/2 rotate-[10deg] bg-neutral-950 p-3">
               <div className="h-[300px] w-full overflow-hidden rounded-sm">
                 <img
-                  src="/memes/hero-meme-1.png"
+                  src="/memes/hero-meme-2.png"
                   alt="Meme about a successful deployment"
                   draggable={false}
                   className="pointer-events-none h-full w-full object-cover"
@@ -185,7 +166,7 @@ function Hero() {
               </div>
 
               <p className="mt-4 text-center text-lg font-semibold text-neutral-200">
-                when the deploy finally works
+                get me some users
               </p>
             </DraggableCardBody>
 
@@ -193,7 +174,7 @@ function Hero() {
             <DraggableCardBody className="absolute left-1/2 top-1/2 z-30 w-[290px] -translate-x-1/2 -translate-y-1/2 rotate-[-2deg] bg-neutral-950 p-3">
               <div className="h-[300px] w-full overflow-hidden rounded-sm">
                 <img
-                  src="/memes/hero-meme-2.png"
+                  src="/memes/hero-meme-3.png"
                   alt="When your code creates a bug"
                   draggable={false}
                   className="pointer-events-none h-full w-full object-cover"
