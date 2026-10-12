@@ -5,6 +5,7 @@ import Link from "next/link";
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "../../../lib/supabase";
 import { Campaign } from "../data";
+import { FileUpload } from "@/components/ui/file-upload";
 
 const ALLOWED_TYPES = [
   "image/jpeg",
@@ -22,14 +23,6 @@ type ExistingSubmission = {
   status: string;
 };
 
-function SectionLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <span className="text-[11px] font-medium uppercase tracking-[0.18em] text-orange-500/80">
-      {children}
-    </span>
-  );
-}
-
 function sanitizeFileName(name: string): string {
   return name.toLowerCase().replace(/[^a-z0-9.]+/g, "-");
 }
@@ -38,51 +31,79 @@ function sanitizeFileName(name: string): string {
 // HEADER
 // ============================================================
 
+// Orange and neutral outlines are inline: the global `* { border-color }`
+// rule in globals.css overrides border-orange-* utilities.
+const NEUTRAL_LINE = "rgba(255,255,255,0.14)";
+const ANTON = "font-[family-name:var(--font-anton)]";
+const GEIST = "font-[family-name:var(--font-geist-sans)]";
+
+// The route supplies remaining as "3d 4h remaining". Display without suffix.
+function timeLeftOf(campaign: Campaign): string {
+  return campaign.remaining.replace(/ remaining$/, "");
+}
+
 function SubmitHeader({ campaign }: { campaign: Campaign }) {
+  const ended = campaign.status === "Ended";
+
   return (
-    <section className="border-b border-white/[0.06]">
-      <div className="mx-auto max-w-2xl px-5 pt-8 pb-10 text-center sm:px-8">
+    <section className="border-b border-white/[0.08]">
+      <div className="mx-auto max-w-7xl px-5 pb-10 pt-8 sm:px-8 sm:pb-12">
         <Link
           href={`/campaign/${campaign.id}`}
           className="inline-flex items-center gap-1.5 text-sm text-neutral-500 transition-colors hover:text-neutral-300"
         >
-          ← {campaign.title}
+          ← Back to campaign
         </Link>
 
-        <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-neutral-800 text-sm font-semibold text-neutral-200">
-            {campaign.initial}
+        <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_auto] lg:items-end">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-md bg-neutral-900 text-sm font-semibold text-neutral-200">
+                {campaign.initial}
+              </div>
+              <span className="text-sm text-neutral-300">{campaign.brand}</span>
+              <span className="text-neutral-700">·</span>
+              <span className="text-xs uppercase tracking-[0.14em] text-neutral-500">
+                {campaign.category}
+              </span>
+            </div>
+
+            <p className="mt-6 flex items-center gap-3 text-[11px] font-medium uppercase tracking-[0.2em] text-orange-500">
+              <span aria-hidden="true" className="h-px w-8 bg-orange-500" />
+              Submit a meme
+            </p>
+
+            <h1
+              className={`${ANTON} mt-4 text-[2.5rem] leading-[0.95] text-white sm:text-5xl lg:text-[3.5rem]`}
+            >
+              {campaign.title}
+            </h1>
           </div>
 
-          <span className="text-sm text-neutral-400">
-            {campaign.brand}
-          </span>
-
-          <span className="text-neutral-700">·</span>
-
-          <span className="text-sm text-neutral-400">
-            {campaign.prize}
-          </span>
+          <dl className="grid grid-cols-2 gap-6 border-t border-white/[0.08] pt-6 lg:min-w-[300px] lg:border-l lg:border-t-0 lg:pl-12 lg:pt-0">
+            <div>
+              <dt className="text-[10px] font-medium uppercase tracking-[0.16em] text-neutral-500">
+                Prize pool
+              </dt>
+              <dd className="mt-2 text-2xl font-semibold tabular-nums text-white">
+                {campaign.prize}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-[10px] font-medium uppercase tracking-[0.16em] text-neutral-500">
+                {ended ? "Status" : "Time left"}
+              </dt>
+              <dd className="mt-2 text-2xl font-semibold text-white">
+                {ended ? "Closed" : timeLeftOf(campaign)}
+              </dd>
+            </div>
+          </dl>
         </div>
-
-        <div className="mt-5">
-          <SectionLabel>Submit a meme</SectionLabel>
-        </div>
-
-        <h1 className="mt-3 text-3xl font-semibold leading-[1.05] tracking-tight text-neutral-50 sm:text-4xl">
-          Enter {campaign.title}
-        </h1>
-
-        <p className="mt-4 text-sm text-neutral-500">
-          Upload your best shot at the Top 5.
-        </p>
       </div>
     </section>
   );
 }
 
-// ============================================================
-// SIGN-IN GATE
 // ============================================================
 
 function SignInGate({ campaign }: { campaign: Campaign }) {
@@ -273,6 +294,60 @@ function AlreadySubmittedState({
 // UPLOAD FORM
 // ============================================================
 
+// Shows the selected file with replace and remove controls.
+// Replace clears the selection, which brings the uploader back.
+function MemePreview({
+  previewUrl,
+  fileName,
+  onReplace,
+  onRemove,
+}: {
+  previewUrl: string;
+  fileName: string;
+  onReplace: () => void;
+  onRemove: () => void;
+}) {
+  return (
+    <div className="overflow-hidden rounded-xl border border-white/[0.08] bg-black">
+      <div className="flex items-center justify-center bg-neutral-950 p-4 sm:p-6">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={previewUrl}
+          alt="Selected meme preview"
+          className="max-h-[380px] w-full object-contain"
+        />
+      </div>
+
+      <div
+        style={{ borderTopColor: NEUTRAL_LINE }}
+        className="flex items-center justify-between gap-3 border-t px-4 py-3"
+      >
+        <span className="min-w-0 truncate text-xs text-neutral-400">
+          {fileName}
+        </span>
+
+        <div className="flex shrink-0 items-center gap-2">
+          <button
+            type="button"
+            onClick={onReplace}
+            style={{ borderColor: NEUTRAL_LINE }}
+            className="rounded-md border px-3 py-1.5 text-xs font-medium text-neutral-200 transition-colors hover:bg-white/[0.04]"
+          >
+            Replace
+          </button>
+          <button
+            type="button"
+            onClick={onRemove}
+            className="rounded-md px-3 py-1.5 text-xs font-medium text-neutral-500 transition-colors hover:text-red-400"
+          >
+            Remove
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function UploadForm({
   campaign,
   user,
@@ -408,58 +483,38 @@ function UploadForm({
   }
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="mx-auto max-w-md rounded-xl border border-white/10 bg-neutral-900/30 p-6 sm:p-7"
-    >
-      <label
-        htmlFor="meme-upload"
-        className="flex cursor-pointer flex-col items-center justify-center gap-2 overflow-hidden rounded-lg border border-dashed border-white/15 bg-white/[0.02] px-6 py-10 text-center transition-colors hover:border-orange-500/40 hover:bg-white/[0.03]"
-      >
-        {previewUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={previewUrl}
-            alt="Selected meme preview"
-            className="max-h-48 rounded-lg object-contain"
+    <form onSubmit={handleSubmit} className="mx-auto max-w-2xl space-y-8">
+      <div>
+        <p className="mb-3 text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-500">
+          Meme image or GIF
+        </p>
+
+        {file && previewUrl ? (
+          <MemePreview
+            previewUrl={previewUrl}
+            fileName={file.name}
+            onReplace={() => handleFileChange(null)}
+            onRemove={() => handleFileChange(null)}
           />
         ) : (
-          <>
-            <span className="text-sm font-medium text-neutral-200">
-              Upload image or GIF
-            </span>
-
-            <span className="text-xs text-neutral-500">
-              Click to browse, or drag a file here
-            </span>
-          </>
+          // The `dark` class makes the component's dark: variants apply on this
+          // light-by-default page. Scoped to this wrapper only.
+          <div className="dark overflow-hidden rounded-xl border border-white/[0.08] bg-black">
+            <FileUpload
+              onChange={(files: File[]) => handleFileChange(files[0] ?? null)}
+            />
+          </div>
         )}
 
-        <input
-          id="meme-upload"
-          type="file"
-          accept={ALLOWED_TYPES.join(",")}
-          className="hidden"
-          onChange={(e) =>
-            handleFileChange(e.target.files?.[0] ?? null)
-          }
-        />
-      </label>
+        <p className="mt-2 text-xs text-neutral-600">
+          JPG, PNG, GIF or WebP, up to 8MB.
+        </p>
+      </div>
 
-      {file && (
-        <button
-          type="button"
-          onClick={() => handleFileChange(null)}
-          className="mt-2 text-xs text-neutral-500 transition-colors hover:text-neutral-300"
-        >
-          Remove file
-        </button>
-      )}
-
-      <div className="mt-5">
+      <div>
         <label
           htmlFor="meme-caption"
-          className="text-xs uppercase tracking-wide text-neutral-500"
+          className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-500"
         >
           Caption
         </label>
@@ -470,20 +525,19 @@ function UploadForm({
           value={caption}
           onChange={(e) => setCaption(e.target.value)}
           placeholder="when the deploy finally works"
-          className="mt-2 w-full rounded-lg border border-white/10 bg-neutral-950/60 px-3.5 py-2.5 text-sm text-neutral-100 placeholder:text-neutral-600 outline-none focus:border-orange-500/40"
+          style={{ borderColor: NEUTRAL_LINE }}
+          className="mt-2 w-full rounded-lg border bg-black px-4 py-3 text-sm text-neutral-100 placeholder:text-neutral-600 outline-none transition-shadow focus:ring-1 focus:ring-orange-500/50"
         />
       </div>
 
-      {error && (
-        <p className="mt-4 text-xs text-red-400">{error}</p>
-      )}
+      {error && <p className="text-sm text-red-400">{error}</p>}
 
       <button
         type="submit"
         disabled={submitting}
-        className="mt-6 w-full rounded-lg bg-orange-600 py-3 text-sm font-semibold text-white transition-colors hover:bg-orange-500 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto sm:px-6"
+        className="w-full rounded-lg bg-orange-600 py-3.5 text-sm font-semibold text-white transition-colors hover:bg-orange-500 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto sm:px-10"
       >
-        {submitting ? "Submitting..." : "Submit meme"}
+        {submitting ? "Submitting..." : "Submit Meme"}
       </button>
     </form>
   );
@@ -646,11 +700,11 @@ export default function SubmitClient({
   }, [campaign.id]);
 
   return (
-    <main className="min-h-screen bg-neutral-950 text-neutral-100">
+    <main className={`${GEIST} min-h-screen bg-[#080808] text-neutral-100`}>
       <SubmitHeader campaign={campaign} />
 
       <section className="py-14 sm:py-20">
-        <div className="mx-auto max-w-5xl px-5 sm:px-8">
+        <div className="mx-auto max-w-7xl px-5 sm:px-8">
           {checkingAuth ? (
             <p className="text-center text-sm text-neutral-500">
               Checking your session...

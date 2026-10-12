@@ -3,13 +3,14 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { supabase } from "../../../lib/supabase";
-import { Campaign, type Submission } from "../data";
+import { Campaign } from "../data";
 import {
   getFinalTop5,
   getParticipation,
   getPickSubmissions,
   getExistingPick,
   type FinalWinner,
+  type Submission,
 } from "./pickData";
 
 // ============================================================
@@ -67,118 +68,292 @@ function PickHeader({
   campaign: Campaign;
   participation: number;
 }) {
+  const ended = campaign.status === "Ended";
+  const timeLeft = campaign.remaining.replace(/ remaining$/, "");
+
   return (
-    <section className="border-b border-white/[0.06]">
-      <div className="mx-auto max-w-5xl px-5 pt-8 pb-10 text-center sm:px-8">
+    <section className="border-b border-white/[0.08]">
+      <div className="mx-auto max-w-7xl px-5 pb-10 pt-8 sm:px-8 sm:pb-12">
         <Link
           href={`/campaign/${campaign.id}`}
           className="inline-flex items-center gap-1.5 text-sm text-neutral-500 transition-colors hover:text-neutral-300"
         >
-          ← {campaign.title}
+          ← Back to campaign
         </Link>
 
-        <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-neutral-800 text-sm font-semibold text-neutral-200">
-            {campaign.initial}
+        <div className="mt-8 grid gap-10 lg:grid-cols-[1fr_auto] lg:items-end lg:gap-16">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-md bg-neutral-900 text-sm font-semibold text-neutral-200">
+                {campaign.initial}
+              </div>
+              <span className="text-sm text-neutral-300">{campaign.brand}</span>
+              <span className="text-neutral-700">·</span>
+              <span className="text-xs uppercase tracking-[0.14em] text-neutral-500">
+                {campaign.category}
+              </span>
+              <StatusBadge status={campaign.status} />
+            </div>
+
+            <p className="mt-6 flex items-center gap-3 text-[11px] font-medium uppercase tracking-[0.2em] text-orange-500">
+              <span aria-hidden="true" className="h-px w-8 bg-orange-500" />
+              {ended ? "Final results" : "Pick the Top 5"}
+            </p>
+
+            <h1 className="mt-4 font-[family-name:var(--font-anton)] text-[2.6rem] leading-[0.95] text-white sm:text-6xl lg:text-[4rem]">
+              {ended ? "The Top 5 is in." : "Which meme deserves a spot in the Top 5?"}
+            </h1>
+
+            <p className="mt-5 max-w-2xl text-sm leading-relaxed text-neutral-400 sm:text-base">
+              {campaign.description}
+            </p>
           </div>
 
-          <span className="text-sm text-neutral-400">{campaign.brand}</span>
-
-          <span className="text-neutral-700">·</span>
-
-          <span className="text-sm text-neutral-400">
-            {campaign.prize}
-          </span>
-
-          <span className="text-neutral-700">·</span>
-
-          <span className="text-sm text-neutral-400">
-            {campaign.remaining}
-          </span>
-
-          <StatusBadge status={campaign.status} />
+          <dl className="grid grid-cols-1 gap-6 border-t border-white/[0.08] pt-6 sm:grid-cols-3 lg:min-w-[380px] lg:border-l lg:border-t-0 lg:pl-12 lg:pt-0">
+            <div>
+              <dt className="text-[10px] font-medium uppercase tracking-[0.16em] text-neutral-500">
+                Prize pool
+              </dt>
+              <dd className="mt-2 text-2xl font-semibold tabular-nums text-white">
+                {campaign.prize}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-[10px] font-medium uppercase tracking-[0.16em] text-neutral-500">
+                Participants
+              </dt>
+              <dd className="mt-2 text-2xl font-semibold tabular-nums text-white">
+                {participation.toLocaleString()}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-[10px] font-medium uppercase tracking-[0.16em] text-neutral-500">
+                {ended ? "Status" : "Time left"}
+              </dt>
+              <dd className="mt-2 text-2xl font-semibold text-white">
+                {ended ? "Closed" : timeLeft}
+              </dd>
+            </div>
+          </dl>
         </div>
-<div className="mt-5">
-  <SectionLabel>
-    {campaign.status === "Ended" ? "Final results" : "Pick the Top 5"}
-  </SectionLabel>
-</div>
-
-<h1 className="mt-3 text-3xl font-semibold leading-[1.05] tracking-tight text-neutral-50 sm:text-4xl md:text-[2.75rem]">
-  {campaign.status === "Ended"
-    ? "The Top 5 is in."
-    : "Which meme deserves a spot in the Top 5?"}
-</h1>
-
-<p className="mt-4 text-sm font-medium text-neutral-400">
-  {campaign.status === "Ended"
-    ? "The community has made its picks."
-    : `${participation.toLocaleString()} ${
-        participation === 1 ? "person has" : "people have"
-      } made their pick`}
-</p>
       </div>
     </section>
   );
 }
 
 // ============================================================
+// SHARED HELPERS
+// Orange outlines are inline: the global `* { border-color }` rule in
+// globals.css would otherwise override border-orange-* utilities.
+// ============================================================
+
+const ORANGE_LINE = "rgba(249,115,22,0.35)";
+const GEIST = "font-[family-name:var(--font-geist-sans)]";
+
+function timeAgo(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const days = Math.floor(diff / 86400000);
+  if (days >= 1) return `${days} day${days === 1 ? "" : "s"} ago`;
+  const hours = Math.floor(diff / 3600000);
+  if (hours >= 1) return `${hours}h ago`;
+  return "Just now";
+}
+
+// ============================================================
 // MEME CARD (picking grid)
+// The image opens the viewer. The button picks directly. They are
+// separate controls, so nothing is nested inside a button.
 // ============================================================
 
 function PickCard({
   submission,
-  selected,
-  onSelect,
+  onOpen,
+  onPick,
+  disabled,
 }: {
   submission: Submission;
-  selected: boolean;
-  onSelect: () => void;
+  onOpen: () => void;
+  onPick: () => void;
+  disabled: boolean;
 }) {
   return (
-    <button
-      type="button"
-      onClick={onSelect}
-      className={`group flex flex-col rounded-xl border p-3 text-left transition-all ${
-        selected
-          ? "border-orange-500/60 bg-orange-500/[0.06]"
-          : "border-white/10 bg-neutral-900/40 hover:-translate-y-0.5 hover:border-white/25"
-      }`}
-    >
-      <div
-        className={`relative h-24 overflow-hidden rounded-lg border border-white/10 sm:h-28 ${
-          submission.mediaUrl ? "bg-neutral-900" : `bg-gradient-to-br ${submission.tone}`
-        }`}
+    <article className="flex h-full flex-col overflow-hidden rounded-xl border border-white/[0.08] bg-black transition-colors hover:bg-white/[0.015]">
+      <button
+        type="button"
+        onClick={onOpen}
+        aria-label={`View meme: ${submission.caption}`}
+        className="block w-full overflow-hidden bg-neutral-950 text-left"
       >
-        {submission.mediaUrl && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={submission.mediaUrl}
-            alt={submission.caption}
-            className="h-full w-full object-contain"
-          />
-        )}
-        {selected && (
-          <span className="absolute right-1.5 top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-orange-500 text-[11px] font-bold text-white">
-            ✓
-          </span>
-        )}
+        <div className="aspect-[4/3] w-full">
+          {submission.mediaUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={submission.mediaUrl}
+              alt=""
+              className="h-full w-full object-cover transition-transform duration-500 hover:scale-[1.02]"
+            />
+          ) : (
+            <div className={`h-full w-full bg-gradient-to-br ${submission.tone}`} />
+          )}
+        </div>
+      </button>
+
+      <div className="flex flex-1 flex-col p-4">
+        <p className="line-clamp-2 text-sm leading-snug text-neutral-100">
+          {submission.caption}
+        </p>
+
+        <div className="mt-2 flex items-center justify-between gap-3 text-xs text-neutral-500">
+          <span className="truncate">{submission.creator}</span>
+          {submission.postedAt && (
+            <span className="shrink-0">{timeAgo(submission.postedAt)}</span>
+          )}
+        </div>
+
+        <button
+          type="button"
+          onClick={onPick}
+          disabled={disabled}
+          style={{ borderColor: ORANGE_LINE }}
+          className="mt-4 w-full rounded-lg border py-2.5 text-sm font-semibold text-orange-400 transition-colors hover:bg-orange-600 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          Pick for Top 5
+        </button>
       </div>
-
-      <p className="mt-2.5 truncate text-xs text-neutral-300">
-        &quot;{submission.caption}&quot;
-      </p>
-
-      <p className="mt-1 text-[11px] text-neutral-600">
-        @{submission.creator} · #{submission.submissionNo}
-      </p>
-    </button>
+    </article>
   );
 }
 
 // ============================================================
-// GRID + PICK FLOW
+// MEME VIEWER (full size, centred, dimmed background)
+// Shows the whole image or GIF without cropping.
 // ============================================================
+
+function MemeViewer({
+  items,
+  index,
+  onClose,
+  onPrev,
+  onNext,
+  onPick,
+  disabled,
+}: {
+  items: Submission[];
+  index: number;
+  onClose: () => void;
+  onPrev: () => void;
+  onNext: () => void;
+  onPick: () => void;
+  disabled: boolean;
+}) {
+  const item = items[index];
+  const multiple = items.length > 1;
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+      if (e.key === "ArrowLeft" && multiple) onPrev();
+      if (e.key === "ArrowRight" && multiple) onNext();
+    };
+
+    window.addEventListener("keydown", onKey);
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [onClose, onPrev, onNext, multiple]);
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="Meme viewer"
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 px-3 py-6 backdrop-blur-sm sm:px-6"
+    >
+      <div className="relative w-full max-w-3xl rounded-2xl border border-white/[0.1] bg-[#080808] p-4 shadow-2xl sm:p-6">
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close"
+          className="absolute right-3 top-3 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-black/70 text-neutral-300 transition-colors hover:text-white sm:right-5 sm:top-5"
+        >
+          ✕
+        </button>
+
+        {multiple && (
+          <>
+            <button
+              type="button"
+              onClick={onPrev}
+              aria-label="Previous meme"
+              className="absolute left-2 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-black/70 text-neutral-200 transition-colors hover:text-white sm:-left-5"
+            >
+              ‹
+            </button>
+            <button
+              type="button"
+              onClick={onNext}
+              aria-label="Next meme"
+              className="absolute right-2 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-black/70 text-neutral-200 transition-colors hover:text-white sm:-right-5"
+            >
+              ›
+            </button>
+          </>
+        )}
+
+        <div className="flex max-h-[62vh] w-full items-center justify-center overflow-hidden rounded-xl bg-black">
+          {item.mediaUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={item.mediaUrl}
+              alt={item.caption}
+              className="max-h-[62vh] w-full object-contain"
+            />
+          ) : (
+            <div className={`h-72 w-full bg-gradient-to-br ${item.tone}`} />
+          )}
+        </div>
+
+        <div className="mt-5">
+          <p className={`${GEIST} text-lg font-semibold leading-snug text-white sm:text-xl`}>
+            {item.caption}
+          </p>
+
+          <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-neutral-500">
+            <span className="text-neutral-300">{item.creator}</span>
+            {item.postedAt && (
+              <>
+                <span aria-hidden="true">·</span>
+                <span>{timeAgo(item.postedAt)}</span>
+              </>
+            )}
+            {multiple && (
+              <span className="ml-auto text-xs">
+                {index + 1} of {items.length}
+              </span>
+            )}
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={onPick}
+          disabled={disabled}
+          className="mt-6 w-full rounded-lg bg-orange-600 py-3.5 text-sm font-semibold text-white transition-colors hover:bg-orange-500 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {disabled ? "Saving..." : "Pick for Top 5"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function LoginModal({
   campaignId,
   selectedSubmissionId,
@@ -346,6 +521,7 @@ function PickGrid({ campaign }: { campaign: Campaign }) {
   const [showLogin, setShowLogin] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [viewerIndex, setViewerIndex] = useState<number | null>(null);
 
   useEffect(() => {
     const loadData = async () => {
@@ -362,10 +538,6 @@ function PickGrid({ campaign }: { campaign: Campaign }) {
 
     loadData();
   }, [campaign.id]);
-
-  const selectedSubmission = submissions.find(
-    (s) => s.id === selected
-  );
 
   const existingSubmission = submissions.find(
     (s) => s.id === existingPickId
@@ -455,6 +627,26 @@ function PickGrid({ campaign }: { campaign: Campaign }) {
     }
   }, [loading, submissions, campaign.id]);
 
+  // Same sign-in and save path as the previous explicit pick button:
+  // record the selection, require sign-in, then save. Closes the viewer first.
+  const attemptPick = async (submission: Submission) => {
+    if (saving) return;
+
+    setViewerIndex(null);
+    setSelected(submission.id);
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      setShowLogin(true);
+      return;
+    }
+
+    await savePick(submission);
+  };
+
   const shareText = encodeURIComponent(
     `I think this meme makes the Top 5 of the ${campaign.title} on ROT ME 👀`
   );
@@ -481,9 +673,12 @@ function PickGrid({ campaign }: { campaign: Campaign }) {
       <div className="mx-auto max-w-md text-center">
         <SectionLabel>Your pick</SectionLabel>
 
-        <div className="mt-4 rounded-xl border border-orange-500/40 bg-orange-500/[0.05] p-5">
+        <div
+          className="mt-4 rounded-xl border bg-orange-500/[0.04] p-5"
+          style={{ borderColor: ORANGE_LINE }}
+        >
           <div
-            className={`h-40 overflow-hidden rounded-lg border border-white/10 ${
+            className={`aspect-[4/3] overflow-hidden rounded-lg border border-white/10 ${
               existingSubmission.mediaUrl
                 ? "bg-neutral-900"
                 : `bg-gradient-to-br ${existingSubmission.tone}`
@@ -494,18 +689,17 @@ function PickGrid({ campaign }: { campaign: Campaign }) {
               <img
                 src={existingSubmission.mediaUrl}
                 alt={existingSubmission.caption}
-                className="h-full w-full object-cover"
+                className="h-full w-full object-contain"
               />
             )}
           </div>
 
           <p className="mt-4 text-sm text-neutral-200">
-            &quot;{existingSubmission.caption}&quot;
+            {existingSubmission.caption}
           </p>
 
           <p className="mt-1 text-xs text-neutral-500">
-            @{existingSubmission.creator} · #
-            {existingSubmission.submissionNo}
+            {existingSubmission.creator}
           </p>
         </div>
 
@@ -514,8 +708,8 @@ function PickGrid({ campaign }: { campaign: Campaign }) {
         </p>
 
         <p className="mt-1 text-xs text-neutral-500">
-          Rankings stay hidden until {campaign.title} ends — check back
-          to see if it made the Top 5.
+          Rankings stay hidden until {campaign.title} ends. Check back to see
+          if it made the Top 5.
         </p>
 
         <a
@@ -532,53 +726,47 @@ function PickGrid({ campaign }: { campaign: Campaign }) {
 
   return (
     <>
-      <div>
-        <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
-          {submissions.map((s) => (
+      {submissions.length === 0 ? (
+        <p className="py-16 text-center text-sm text-neutral-500">
+          No approved memes yet. Check back soon.
+        </p>
+      ) : (
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          {submissions.map((s, i) => (
             <PickCard
               key={s.id}
               submission={s}
-              selected={selected === s.id}
-              onSelect={() =>
-                setSelected((cur) =>
-                  cur === s.id
-                    ? null
-                    : s.id!
-                )
-              }
+              onOpen={() => setViewerIndex(i)}
+              onPick={() => attemptPick(s)}
+              disabled={saving}
             />
           ))}
         </div>
+      )}
 
-        <div className="mt-8 flex justify-center">
-          <button
-            onClick={async () => {
-              if (!selectedSubmission || saving) return;
+      {saveError && (
+        <p className="mt-6 text-center text-xs text-red-400">{saveError}</p>
+      )}
 
-              const {
-                data: { user },
-              } = await supabase.auth.getUser();
-
-              if (!user) {
-                setShowLogin(true);
-                return;
-              }
-
-              await savePick(selectedSubmission);
-            }}
-            disabled={selected === null || saving}
-            className="rounded-lg bg-orange-600 px-8 py-3 text-sm font-semibold text-white transition-colors hover:bg-orange-500 disabled:cursor-not-allowed disabled:bg-neutral-800 disabled:text-neutral-500"
-          >
-            {saving ? "Saving..." : "Make My Pick"}
-          </button>
-        </div>
-
-        {saveError && (
-          <p className="mt-3 text-center text-xs text-red-400">
-            {saveError}
-          </p>
-        )}
-      </div>
+      {viewerIndex !== null && submissions[viewerIndex] && (
+        <MemeViewer
+          items={submissions}
+          index={viewerIndex}
+          onClose={() => setViewerIndex(null)}
+          onPrev={() =>
+            setViewerIndex((cur) =>
+              cur === null ? null : (cur - 1 + submissions.length) % submissions.length
+            )
+          }
+          onNext={() =>
+            setViewerIndex((cur) =>
+              cur === null ? null : (cur + 1) % submissions.length
+            )
+          }
+          onPick={() => attemptPick(submissions[viewerIndex])}
+          disabled={saving}
+        />
+      )}
 
       {showLogin && selected !== null && (
         <LoginModal
@@ -686,7 +874,7 @@ function Top5Reveal({ campaign }: { campaign: Campaign }) {
                   </p>
 
                   <p className="mt-1 text-xs text-neutral-500">
-                    @{s.creator} · #{s.submissionNo}
+                    {s.creator}
                   </p>
                 </div>
 
@@ -957,11 +1145,11 @@ export default function PickClient({ campaign }: { campaign: Campaign }) {
   }, [campaign.id]);
 
   return (
-    <main className="min-h-screen bg-neutral-950 text-neutral-100">
+    <main className={`${GEIST} min-h-screen bg-[#080808] text-neutral-100`}>
       <PickHeader campaign={campaign} participation={participation} />
 
       <section className="py-14 sm:py-20">
-        <div className="mx-auto max-w-5xl px-5 sm:px-8">
+        <div className="mx-auto max-w-7xl px-5 sm:px-8">
           {isEnded ? (
             <Top5Reveal campaign={campaign} />
           ) : (
